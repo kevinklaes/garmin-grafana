@@ -37,6 +37,11 @@ services:
       # - USER_TIMEZONE= # Can hardcode user's timezone - must be a valid TZ identifier like Europe/Budapest without quotes, fetches timezone automatically and dynamically on each run if set to empty (default) - Read docs
       # - INFLUXDB_ENDPOINT_IS_HTTP=True # Set this to False if you are using HTTPS for your influxdb connection (over the internet)
       # - FORCE_REPROCESS_ACTIVITIES=True # Enables re-processing of FIT files on iterative updates when set to True (default), setting to False may save processing time but known for skipping activities
+      # - BACKFILL_HR_FROM_ACTIVITIES=False # Fills HeartRateIntraday gaps using HR recorded with activities by another device (e.g. bike computer) when set to True, default False - points are tagged BackfillSource=ActivityGPS for auditability, read docs
+      # - BACKFILL_HR_GAP_SECONDS=90 # Backfill only where no watch HR sample exists within this many seconds (bike computer users with sparse watch HR may prefer 30)
+      # - BACKFILL_HR_RESOLUTION=60 # Bucket width in seconds for averaging activity HR before backfill
+      # - BACKFILL_HR_MIN=35 # Ignore activity HR samples below this value
+      # - BACKFILL_HR_MAX=220 # Ignore activity HR samples above this value
 
   influxdb:
     restart: unless-stopped

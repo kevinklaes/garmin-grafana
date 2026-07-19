@@ -14,6 +14,10 @@ from garminconnect import (
     GarminConnectConnectionError,
     GarminConnectTooManyRequestsError,
 )
+try:
+    from garmin_grafana import hr_backfill
+except ImportError: # the docker image runs this file as a plain script (python garmin_grafana/garmin_fetch.py)
+    import hr_backfill
 garmin_obj = None
 banner_text = """
 
@@ -72,6 +76,11 @@ FORCE_REPROCESS_ACTIVITIES = False if os.getenv("FORCE_REPROCESS_ACTIVITIES") in
 USER_TIMEZONE = os.getenv("USER_TIMEZONE", "") # optional, fetches timezone info from last activity automatically if left blank
 PARSED_ACTIVITY_ID_LIST = []
 IGNORE_ERRORS = True if os.getenv("IGNORE_ERRORS") in ['True', 'true', 'TRUE','t', 'T', 'yes', 'Yes', 'YES', '1'] else False
+BACKFILL_HR_FROM_ACTIVITIES = True if os.getenv("BACKFILL_HR_FROM_ACTIVITIES") in ['True', 'true', 'TRUE','t', 'T', 'yes', 'Yes', 'YES', '1'] else False # optional, opt-in: fills HeartRateIntraday gaps with HR recorded by another device (e.g. bike computer) stored with activities - see README
+BACKFILL_HR_GAP_SECONDS = int(os.getenv("BACKFILL_HR_GAP_SECONDS", 90)) # optional, backfill only where no watch HR sample exists within this many seconds
+BACKFILL_HR_RESOLUTION = int(os.getenv("BACKFILL_HR_RESOLUTION", 60)) # optional, bucket width in seconds for averaging activity HR before backfill
+BACKFILL_HR_MIN = int(os.getenv("BACKFILL_HR_MIN", 35)) # optional, ignore activity HR samples below this value
+BACKFILL_HR_MAX = int(os.getenv("BACKFILL_HR_MAX", 220)) # optional, ignore activity HR samples above this value
 
 # %%
 for handler in logging.root.handlers[:]:
@@ -1646,8 +1655,10 @@ def daily_fetch_write(date_str):
         write_points_to_influxdb(get_sleep_data(date_str))
     if 'steps' in FETCH_SELECTION:
         write_points_to_influxdb(get_intraday_steps(date_str))
+    intraday_hr_points = []
     if 'heartrate' in FETCH_SELECTION:
-        write_points_to_influxdb(get_intraday_hr(date_str))
+        intraday_hr_points = get_intraday_hr(date_str)
+        write_points_to_influxdb(intraday_hr_points)
     if 'stress' in FETCH_SELECTION:
         write_points_to_influxdb(get_intraday_stress(date_str))
     if 'breathing' in FETCH_SELECTION:
@@ -1676,16 +1687,30 @@ def daily_fetch_write(date_str):
         write_points_to_influxdb(get_blood_pressure(date_str))
     if 'hydration' in FETCH_SELECTION:
         write_points_to_influxdb(get_hydration(date_str))
+    activity_gps_points = []
     if 'activity' in FETCH_SELECTION:
         activity_summary_points_list, activity_with_gps_id_dict, strength_activity_id_dict = get_activity_summary(date_str)
         write_points_to_influxdb(activity_summary_points_list)
-        write_points_to_influxdb(fetch_activity_GPS(activity_with_gps_id_dict))
+        activity_gps_points = fetch_activity_GPS(activity_with_gps_id_dict)
+        write_points_to_influxdb(activity_gps_points)
         if strength_activity_id_dict:
             write_points_to_influxdb(get_strength_training_data(strength_activity_id_dict))
     if 'solar_intensity' in FETCH_SELECTION:
         write_points_to_influxdb(get_solar_intensity(date_str))
     if 'lifestyle' in FETCH_SELECTION:
         write_points_to_influxdb(get_lifestyle_data(date_str))
+    if BACKFILL_HR_FROM_ACTIVITIES and activity_gps_points and 'heartrate' in FETCH_SELECTION:
+        planned_backfill_points = hr_backfill.plan_hr_backfill(
+            hr_backfill.watch_epochs_from_points(intraday_hr_points),
+            hr_backfill.activity_hr_samples_from_points(activity_gps_points),
+            gap_seconds=BACKFILL_HR_GAP_SECONDS,
+            resolution=BACKFILL_HR_RESOLUTION,
+            min_hr=BACKFILL_HR_MIN,
+            max_hr=BACKFILL_HR_MAX,
+        )
+        if planned_backfill_points:
+            write_points_to_influxdb(hr_backfill.backfill_points_to_influx_format(planned_backfill_points, GARMIN_DEVICENAME, INFLUXDB_DATABASE))
+            logging.info(f"Success : Backfilled {len(planned_backfill_points)} HeartRateIntraday points from activity HR for date {date_str}")
 
 
 # %%

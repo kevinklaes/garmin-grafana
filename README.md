@@ -191,6 +191,17 @@ This project is made for InfluxDB 1.11, as Flux queries on influxDB 2.x can be p
 
 ✅ If you are having missing data on previous days till midnight (which are available on Garmin Connect but missing on dashboard) or sync issues when using the automatic periodic fetching, consider updating the container to recent version and use `USER_TIMEZONE` environment variable under the `garmin-fetch-data` service. The value must be a valid tz identifier like `Europe/Budapest`. This variable is optional and the script tries to determine the timezone and fetch the UTC offset automatically if this variable is set as empty. If you see the automatic identification is not working for you, this variable can be used to override that behaviour and ensures the script is using the hardcoded timezone for all data fetching related activities. The previous gaps won't be filled (you need to fetch them using historic bulk update method), but moving forward, the script will keep everything in sync.
 
+✅ If your heart rate during activities is recorded by a secondary device (typically a **bike computer** like a Garmin Edge paired with an HR strap), those samples are stored with the activity (`ActivityGPS` measurement) but never reach the watch-based `HeartRateIntraday` stream — so intraday heart rate panels show gaps during rides even though the data exists. Set `BACKFILL_HR_FROM_ACTIVITIES=True` under `garmin-fetch-data` environment variables to automatically fill those gaps during sync: activity HR is averaged into fixed-width buckets (`BACKFILL_HR_RESOLUTION`, default `60` seconds) and written as supplemental `HeartRateIntraday` points wherever no watch HR sample exists within `BACKFILL_HR_GAP_SECONDS` (default `90`) of the bucket. Supplemental points are tagged `BackfillSource=ActivityGPS` (plus `ActivityID`) so they can be audited or deleted later without touching organic watch data, and re-running a day is idempotent. This feature is **disabled by default**. The following environment variables control it:
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `BACKFILL_HR_FROM_ACTIVITIES` | `False` | Enable supplemental intraday HR backfill from activity HR |
+| `BACKFILL_HR_GAP_SECONDS` | `90` | Skip backfill when a watch HR sample exists within this many seconds |
+| `BACKFILL_HR_RESOLUTION` | `60` | Bucket width (seconds) for averaging activity HR |
+| `BACKFILL_HR_MIN` / `BACKFILL_HR_MAX` | `35` / `220` | Sanity filter on activity HR values |
+
+If your watch records only sparse HR while a bike computer is connected, a tighter `BACKFILL_HR_GAP_SECONDS=30` fills the gaps more completely. The backfill also applies during [historical bulk fetching](#historical-data-fetching-bulk-update), so past activity gaps are healed the same way.
+
 ✅ Want this dashboard in **Imperial units** instead of **metric units**? I can't maintain two separate dashboards at the same time but here is an [excellent step-by-step guide](https://github.com/arpanghosh8453/garmin-grafana/issues/27#issuecomment-2817081738) on how you can do it yourself on your dashboard! Also, If you prefer 24 hours time format instead of 12 hour with AM/PM, you can remove `GF_DATE_FORMATS_*` ENV variables from the `compose.yml` file.
 
 ### Collecting periodic watch battery levels
