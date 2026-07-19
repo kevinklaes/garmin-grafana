@@ -132,6 +132,18 @@
     {
       "asDropdown": false,
       "icon": "external link",
+      "includeVars": true,
+      "keepTime": true,
+      "tags": [],
+      "targetBlank": false,
+      "title": "Day View",
+      "tooltip": "Single-day intraday stats for any date",
+      "type": "link",
+      "url": "/d/garmin-intraday-day/garmin-intraday-day"
+    },
+    {
+      "asDropdown": false,
+      "icon": "external link",
       "includeVars": false,
       "keepTime": true,
       "tags": [],
