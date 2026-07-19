@@ -36,11 +36,11 @@ chmod -R 777 garminconnect-tokens || { echo "Permission change failed - you may 
 echo "Renaming compose-example.yml to compose.yml..."
 mv compose-example.yml compose.yml
 
-echo "Replacing {DS_GARMIN_STATS} variable with garmin_influxdb in the dashboard JSON..."
+echo "Replacing {DS_GARMIN_STATS} variable with garmin_influxdb in the dashboard JSONs..."
 if [[ "$OSTYPE" == "darwin"* ]]; then
-    sed -i '' 's/\${DS_GARMIN_STATS}/garmin_influxdb/g' ./Grafana_Dashboard/Garmin-Grafana-Dashboard.json
+    sed -i '' 's/\${DS_GARMIN_STATS}/garmin_influxdb/g' ./Grafana_Dashboard/*.json
 else
-    sed -i 's/\${DS_GARMIN_STATS}/garmin_influxdb/g' ./Grafana_Dashboard/Garmin-Grafana-Dashboard.json
+    sed -i 's/\${DS_GARMIN_STATS}/garmin_influxdb/g' ./Grafana_Dashboard/*.json
 fi
 
 # echo "Setting garmin-fetch-data Docker container user as root..." # This replacement runs the container as root and requires the bind volume mount for the token storage updated accordingly as well. 
