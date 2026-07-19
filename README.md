@@ -170,7 +170,7 @@ sed -i '' 's/\${DS_GARMIN_STATS}/garmin_influxdb/g' Grafana_Dashboard/*.json
 > docker compose run --rm -e MANUAL_START_DATE=YYYY-MM-DD -e MANUAL_END_DATE=YYYY-MM-DD garmin-fetch-data
 > ```
 
-If you have come this far, everything should be working. If not, please check the **troubleshooting section** for known issues. If it is already working, **CONGRATULATIONS!**. Enjoy your dashboard and keep exercising! If you like the dashboard and my sincere effort behind it, please **star this repository**. If you enjoy it a lot and want to show your appreciation and share the joy with me, feel free to [buy me a coffee](https://ko-fi.com/A0A84F3DP). Maintaining this project takes a lot of my free time and your support keeps me motivated to develop more features for the community and spend more time on similar projects. if you are having any trouble, feel free to open an issue here, I will try my best to help you!
+If you have come this far, everything should be working. If not, please check the **troubleshooting section** for known issues. If it is already working, **CONGRATULATIONS!**. Enjoy your dashboard and keep exercising! If you like the dashboard and my sincere effort behind it, please **star this repository**. if you are having any trouble, feel free to open an issue here, I will try my best to help you!
 
 ---
 
@@ -341,9 +341,7 @@ If you find this project helpful, please consider:
 
 ⭐ Starring this repository to show your support and spread the news!
 
-☕ [Buying me a coffee](https://ko-fi.com/A0A84F3DP) if you'd like to contribute to its maintenance and future development.
 
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/A0A84F3DP)
 
 ## Need Help?
 

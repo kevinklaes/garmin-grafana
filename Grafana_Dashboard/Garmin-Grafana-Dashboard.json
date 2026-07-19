@@ -157,28 +157,6 @@
       "type": "row"
     },
     {
-      "gridPos": {
-        "h": 3,
-        "w": 3,
-        "x": 0,
-        "y": 1
-      },
-      "id": 25,
-      "options": {
-        "code": {
-          "language": "plaintext",
-          "showLineNumbers": false,
-          "showMiniMap": false
-        },
-        "content": "<center><a href='https://ko-fi.com/A0A84F3DP' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://storage.ko-fi.com/cdn/kofi2.png?v=6' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a></center>  ",
-        "mode": "html"
-      },
-      "pluginVersion": "12.0.1",
-      "title": "Support Me!",
-      "transparent": true,
-      "type": "text"
-    },
-    {
       "datasource": {
         "type": "influxdb",
         "uid": "${DS_GARMIN_STATS}"
@@ -1021,7 +999,7 @@
           "color": {
             "mode": "thresholds"
           },
-          "displayName": "Steps 👟",
+          "displayName": "Steps \ud83d\udc5f",
           "mappings": [],
           "max": 15000,
           "min": 0,
