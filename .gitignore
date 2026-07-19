@@ -8,3 +8,16 @@ src/garmin_grafana.egg-info/requires.txt
 src/garmin_grafana.egg-info/SOURCES.txt
 src/garmin_grafana.egg-info/top_level.txt
 __pycache__
+
+# Gas Town scaffolding (see gg-bli)
+/.beads/
+/.claude/
+/.runtime/
+/CLAUDE.md
+.claude/
+.runtime/
+.opencode/
+.logs/
+state.json
+CLAUDE.local.md
+GEMINI.md
