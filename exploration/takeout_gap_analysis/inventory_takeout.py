@@ -21,7 +21,7 @@ import json
 import os
 import re
 import sys
-from collections import defaultdict, Counter
+from collections import defaultdict
 
 # TLD is restricted to bare letters (no '_' or '-') so the match stops right
 # after e.g. ".com" instead of swallowing a trailing "-comments"/"_gear"
@@ -30,8 +30,6 @@ from collections import defaultdict, Counter
 _EMAIL_RE = re.compile(r"[\w.+-]+@(?:[A-Za-z0-9-]+\.)+[A-Za-z]{2,6}", re.IGNORECASE)
 _SEP_RE = re.compile(r"[_\-]+")
 _PURE_DIGITS_RE = re.compile(r"^\d+$")
-
-SKIP_EXTENSIONS = {".zip", ".png", ".jpg", ".jpeg", ".fit", ".pbf", ".gpx", ".tcx"}
 
 
 def type_name(value):
@@ -159,10 +157,10 @@ def main():
         sys.exit(1)
 
     groups = collect_files(source_dir)
-    counts = Counter({key: len(paths) for key, paths in groups.items()})
+    total_files = sum(len(paths) for paths in groups.values())
 
     print(f"# Takeout schema inventory for {source_dir}")
-    print(f"# {len(groups)} distinct (dir, schema-group) combinations, {sum(counts.values())} total JSON files")
+    print(f"# {len(groups)} distinct (dir, schema-group) combinations, {total_files} total JSON files")
     print()
 
     for key in sorted(groups):
