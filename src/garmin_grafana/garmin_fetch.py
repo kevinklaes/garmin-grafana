@@ -15,9 +15,9 @@ from garminconnect import (
     GarminConnectTooManyRequestsError,
 )
 try:
-    from garmin_grafana import hr_backfill
+    from garmin_grafana import hr_backfill, core_sensor
 except ImportError: # the docker image runs this file as a plain script (python garmin_grafana/garmin_fetch.py)
-    import hr_backfill
+    import hr_backfill, core_sensor
 garmin_obj = None
 banner_text = """
 
@@ -1096,7 +1096,8 @@ def fetch_activity_GPS(activityIDdict): # Uses FIT file by default, falls back t
                                     "Vertical_Oscillation": parsed_record.get('vertical_oscillation', None),
                                     "Stance_Time": parsed_record.get('stance_time', None),
                                     "Vertical_Ratio": parsed_record.get('vertical_ratio', None),
-                                    "Step_Length": parsed_record.get('step_length', None)
+                                    "Step_Length": parsed_record.get('step_length', None),
+                                    **core_sensor.core_sensor_fields(parsed_record)
                                 }
                             }
                             points_list.append(point)
