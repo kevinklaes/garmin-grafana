@@ -15,9 +15,9 @@ from garminconnect import (
     GarminConnectTooManyRequestsError,
 )
 try:
-    from garmin_grafana import hr_backfill, core_sensor
+    from garmin_grafana import hr_backfill, core_sensor, gear_shift
 except ImportError: # the docker image runs this file as a plain script (python garmin_grafana/garmin_fetch.py)
-    import hr_backfill, core_sensor
+    import hr_backfill, core_sensor, gear_shift
 garmin_obj = None
 banner_text = """
 
@@ -63,7 +63,7 @@ MAX_CONSECUTIVE_500_ERRORS = int(os.getenv("MAX_CONSECUTIVE_500_ERRORS", 10)) # 
 INFLUXDB_ENDPOINT_IS_HTTP = False if os.getenv("INFLUXDB_ENDPOINT_IS_HTTP") in ['False','false','FALSE','f','F','no','No','NO','0'] else True # optional
 GARMIN_DEVICENAME_AUTOMATIC = False if GARMIN_DEVICENAME != "Unknown" else True # optional
 UPDATE_INTERVAL_SECONDS = int(os.getenv("UPDATE_INTERVAL_SECONDS", 300)) # optional
-FETCH_SELECTION = os.getenv("FETCH_SELECTION", "daily_avg,sleep,steps,heartrate,stress,breathing,hrv,fitness_age,vo2,activity,race_prediction,body_composition,lifestyle") # additional available values are lactate_threshold,training_status,training_readiness,hill_score,endurance_score,blood_pressure,hydration,solar_intensity,cycling_dynamics which you can add to the list seperated by , without any space
+FETCH_SELECTION = os.getenv("FETCH_SELECTION", "daily_avg,sleep,steps,heartrate,stress,breathing,hrv,fitness_age,vo2,activity,race_prediction,body_composition,lifestyle") # additional available values are lactate_threshold,training_status,training_readiness,hill_score,endurance_score,blood_pressure,hydration,solar_intensity,cycling_dynamics,gear_shifts which you can add to the list seperated by , without any space
 ACTIVITY_TYPE_FILTER = [t.strip().lower() for t in os.getenv("ACTIVITY_TYPE_FILTER", "").split(",") if t.strip()] # optional, comma-separated list of activity typeKeys to import only specific activity types. Leave empty to import all. Known typeKeys: running,treadmill_running,indoor_running,cycling,indoor_cycling,road_biking,mountain_biking,walking,hiking,mountaineering,strength_training,hiit,indoor_cardio,elliptical,lap_swimming,open_water_swimming,rock_climbing,indoor_climbing,tennis_v2,kayaking_v2,boating_v2,multi_sport,other
 LACTATE_THRESHOLD_SPORTS = os.getenv("LACTATE_THRESHOLD_SPORTS", "RUNNING").upper().split(",") # Garmin currently implements RUNNING, but has provisions for CYCLING, and SWIMMING
 KEEP_FIT_FILES = True if os.getenv("KEEP_FIT_FILES") in ['True', 'true', 'TRUE','t', 'T', 'yes', 'Yes', 'YES', '1'] else False # optional
@@ -1061,6 +1061,7 @@ def fetch_activity_GPS(activityIDdict): # Uses FIT file by default, falls back t
                     all_sessions_list = [record.get_values() for record in fitfile.get_messages('session')]
                     all_lengths_list = [record.get_values() for record in fitfile.get_messages('length')]
                     all_laps_list = [record.get_values() for record in fitfile.get_messages('lap')]
+                    all_events_list = [record.get_values() for record in fitfile.get_messages('event')]
                     if len(all_records_list) == 0:
                         raise FileNotFoundError(f"No records found in FIT file for Activity ID {activityID} - Discarding FIT file")
                     else:
@@ -1203,6 +1204,23 @@ def fetch_activity_GPS(activityIDdict): # Uses FIT file by default, falls back t
                         if cycling_point:
                             points_list.append(cycling_point)
                             logging.info(f"Activity ID {activityID}: CyclingDynamics point added ({len(cycling_point['fields']) - 2} metrics)")
+
+                    # Extract Di2/ANT+ electronic shifting gear-change events
+                    if 'gear_shifts' in FETCH_SELECTION:
+                        gear_shift_points = 0
+                        for event_record in all_events_list:
+                            gear_point = gear_shift.gear_shift_point(
+                                event_record,
+                                activity_id=activityID,
+                                activity_selector=activity_start_time.strftime('%Y%m%dT%H%M%SUTC-') + activity_type,
+                                device=GARMIN_DEVICENAME,
+                                database=INFLUXDB_DATABASE,
+                            )
+                            if gear_point:
+                                points_list.append(gear_point)
+                                gear_shift_points += 1
+                        if gear_shift_points:
+                            logging.info(f"Activity ID {activityID}: {gear_shift_points} GearShiftEvents points added")
 
                     if KEEP_FIT_FILES:
                         os.makedirs(FIT_FILE_STORAGE_LOCATION, exist_ok=True)
