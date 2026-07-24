@@ -1061,7 +1061,6 @@ def fetch_activity_GPS(activityIDdict): # Uses FIT file by default, falls back t
                     all_sessions_list = [record.get_values() for record in fitfile.get_messages('session')]
                     all_lengths_list = [record.get_values() for record in fitfile.get_messages('length')]
                     all_laps_list = [record.get_values() for record in fitfile.get_messages('lap')]
-                    all_events_list = [record.get_values() for record in fitfile.get_messages('event')]
                     if len(all_records_list) == 0:
                         raise FileNotFoundError(f"No records found in FIT file for Activity ID {activityID} - Discarding FIT file")
                     else:
@@ -1208,6 +1207,7 @@ def fetch_activity_GPS(activityIDdict): # Uses FIT file by default, falls back t
                     # Extract Di2/ANT+ electronic shifting gear-change events
                     if 'gear_shifts' in FETCH_SELECTION:
                         gear_shift_points = 0
+                        all_events_list = [record.get_values() for record in fitfile.get_messages('event')]
                         for event_record in all_events_list:
                             gear_point = gear_shift.gear_shift_point(
                                 event_record,

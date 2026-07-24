@@ -81,7 +81,9 @@ def process_zip_part(zip_path: Path, *, influx_client, influxdb_version: str, de
                 totals["entries_skipped"] += 1
                 continue
 
-            gear_change_events = [e for e in events if gear_shift.gear_shift_event_fields(e) is not None]
+            gear_change_events = [
+                e for e in events if e.get('timestamp') is not None and gear_shift.gear_shift_event_fields(e) is not None
+            ]
             if not gear_change_events:
                 continue
 
