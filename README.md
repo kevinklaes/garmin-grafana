@@ -25,6 +25,7 @@ A docker container to fetch data from Garmin servers and store the data in a loc
   - ADVANCED : [Manual step by step installation](#manual-install-with-docker-recommended-if-you-understand-linux-concepts) guide
   - SYNOLOGY : [Installation Guide](https://github.com/arpanghosh8453/garmin-grafana/discussions/107#discussion-8326104)
   - KUBERNETES : [Helm](./k8s/README.md) chart for Kubernetes. Try with minikube - [Makefile](./k8s/Makefile) for easy deployment.
+  - POSTGRESQL : [Use PostgreSQL instead of InfluxDB](#using-postgresql-instead-of-influxdb) (optional)
 - **How to**
   - How to [pull historic (old) data](#historical-data-fetching-bulk-update) (bulk update)?
   - How to [import from garmin connect local export files](#importing-from-garmin-connect-export)?
@@ -46,6 +47,14 @@ A docker container to fetch data from Garmin servers and store the data in a loc
 ## Dashboard Example
 
 ![Dashboard](https://github.com/arpanghosh8453/garmin-grafana/blob/main/Grafana_Dashboard/Garmin-Grafana-Dashboard-Preview.png?raw=true)
+
+### Strength Training Dashboard
+
+A separate dashboard for weightlifting, built on the `StrengthExerciseSet` and `StrengthHRZones`
+measurements. It covers estimated 1RM progression per exercise, training volume, personal records,
+exercise balance, a set-level workout log, and HR zone time during strength sessions.
+
+![Strength Training Dashboard](https://github.com/arpanghosh8453/garmin-grafana/blob/main/Grafana_Dashboard/Garmin-Strength-Training-Dashboard-Preview.png?raw=true)
 
 ## Features
 
@@ -165,6 +174,8 @@ sed -i '' 's/\${DS_GARMIN_STATS}/garmin_influxdb/g' Grafana_Dashboard/*.json
 8. if you are not using self-provisioning, then you need to manually add influxdb as the data source and continue follow the rest of these instructions. Please note the influxdb hostname is set as `influxdb` with port `8086` so you should use `http://influxdb:8086` for the address during data source setup and not `http://localhost:8086` because influxdb is a running as a separate container but part of the same docker network and stack. Here the database name should be `GarminStats` matching the influxdb DB name from the docker compose. The query language used for the dashboard is `influxql` which is supported by both InfluxDB 1.x and 3.x, so please select that from the language dropdown during setup. Use the same username and password you used for your influxdb container (check your docker compose config for influxdb container, here we used `influxdb_user` and `influxdb_secret_password` in default configuration) Test the connection to make sure the influxdb is up and reachable (you are good to go if it finds the measurements when you test the connection)
 9. To use the Grafana dashboard with manual import, please use the [JSON file](https://github.com/arpanghosh8453/garmin-grafana/blob/main/Grafana_Dashboard/Garmin-Grafana-Dashboard.json) downloaded directly from GitHub or use the import code **23245** to pull them directly from the Grafana dashboard cloud. For the per-activity view, also import the [Activity Detail JSON file](https://github.com/arpanghosh8453/garmin-grafana/blob/main/Grafana_Dashboard/Garmin-Activity-Detail.json) the same way. In the Grafana dashboard, the heatmap panels require an additional plugin that you must install. This can be done by using the `GF_PLUGINS_PREINSTALL=marcusolsson-hourly-heatmap-panel` environment variable like in the [compose-example.yml](./compose-example.yml) file, or after the creation of the container very easily with docker commands. Just run `docker exec -it grafana grafana cli plugins install marcusolsson-hourly-heatmap-panel` and then run `docker restart grafana` to apply that plugin update. Now, you should be able to see the Heatmap panels on the dashboard loading successfully.
 
+10. If you do strength training, you can additionally import the [Strength Training dashboard](https://github.com/arpanghosh8453/garmin-grafana/blob/main/Grafana_Dashboard/Garmin-Strength-Training-Dashboard.json). It uses only core Grafana panels (no extra plugins) and picks its InfluxDB data source from a dashboard dropdown, so it needs no `sed` substitution. It reads the `StrengthExerciseSet` and `StrengthHRZones` measurements, so it stays empty until you log a strength activity. Since strength data is sparse compared to daily metrics, its default time range is the last 6 months.
+
 > [!NOTE]
 > When you run this for the first time, it will only automatically fetch the data for **last 7 days** only and keep pulling new data that syncs with Garmin Connect moving forward. In order to sync back older data, use the following command replacing the YYYY-MM-DD with appropriate start and end dates (MANUAL_START_DATE value must be older than MANUAL_END_DATE value)
 >
@@ -180,6 +191,10 @@ This project is made for InfluxDB 1.11, as Flux queries on influxDB 2.x can be p
 
 > [!IMPORTANT]
 > If you have an existing **InfluxDB v2.x** database and want to integrate that with this project, you can follow [this guide](https://github.com/arpanghosh8453/garmin-grafana/discussions/63#discussioncomment-13025100), although we officially do not support InfluxDB v2.x with this project. We have direct support for **InfluxDB v3.x**, but we do not actively encourage people to use that as it comes with paywalled features (InfluxDB v3.x OSS limits the data query time to 72 hours - long term queries are only available in enterprise and InfluxData cloud hosted instances) that are essential for long term data visualization. As we are interested in visualization of long term data trends, this limit defeats the purpose. Hence, we strongly recommend using InfluxDB 1.11.x (default settings) to our users as long as it's not discontinued from production.
+
+### Using PostgreSQL instead of InfluxDB
+
+You can store the data in PostgreSQL (or TimescaleDB) instead of InfluxDB. The compose example has the PostgreSQL options commented out (marked `(PostgreSQL)`): uncomment them and comment out the InfluxDB lines they replace. Grafana then provisions the dashboards in `Grafana_Postgres/`. The dashboards show the same panels and numbers. An existing InfluxDB 1.x or 3.x database can be copied over with one command. See [docs/postgres-backend.md](docs/postgres-backend.md) for setup, migration and details.
 
 ### Additional configuration and environment variables
 
@@ -279,7 +294,7 @@ This project provides additional utilities to export the data as CSV for externa
 There are two ways to export the data into CSV files.
 
 1. Use the native CSV export functionality of Grafana, where you can export the data shown on any Grafana panel using [this guide](https://grafana.com/blog/2024/05/30/how-to-export-any-grafana-visualization-to-a-csv-file-microsoft-excel-or-google-sheets/) as CSV.
-2. If the above method is tedious and you want to grab all measurements in detail as CSV files with one command directly from the local InfluxDB database, a convenient exporter script is provided with this project (included inside the docker container).
+2. If the above method is tedious and you want to grab all measurements in detail as CSV files with one command directly from the local InfluxDB database, a convenient exporter script is provided with this project (included inside the docker container). It also works with the [PostgreSQL backend](#using-postgresql-instead-of-influxdb) (`DATABASE_BACKEND=postgres`).
 
    2.1 Simply run the following docker command from your terminal `docker exec garmin-fetch-data python /app/garmin_grafana/influxdb_exporter.py` to export the last 30 days data. The script takes additional arguments such as `last-n-days` or `start-date` and `end-date` if you want to export data for last n days or for a specific date range. You should run the command like
 
