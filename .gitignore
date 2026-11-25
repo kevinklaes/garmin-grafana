@@ -10,7 +10,6 @@ src/garmin_grafana.egg-info/top_level.txt
 __pycache__
 
 # Gas Town scaffolding (see gg-bli)
-/.beads/
 /.claude/
 /.runtime/
 /CLAUDE.md
@@ -21,3 +20,7 @@ __pycache__
 state.json
 CLAUDE.local.md
 GEMINI.md
+
+# Gas City
+.beads/*
+!.beads/identity.toml
